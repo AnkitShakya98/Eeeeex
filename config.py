@@ -12,7 +12,7 @@ BOT_USERNAME = os.environ.get("AnkitExtractorBot")
 OWNER_ID = int(os.environ.get("OWNER_ID", "6748792256"))
 # ------------------X------------------------------
 CREATOR_ID = int(os.environ.get("CREATOR_ID", "6748792256"))
-LOG_CHANNEL_ID = int(os.environ.get("LOG_CHANNEL_ID", "-1003549344180"))
+LOG_CHANNEL_ID = int(os.environ.get("LOG_CHANNEL_ID", "-1003884699177"))
 
 
 SUDO_USERS = list(map(int, getenv("SUDO_USERS", "8085418235").split()))
