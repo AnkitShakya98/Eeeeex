@@ -1,4 +1,4 @@
-pyrofork
+pyrogram
 psutil
 aiohttp
 flask
