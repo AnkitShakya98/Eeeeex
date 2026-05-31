@@ -1,4 +1,6 @@
 pyrogram
+pyrofrok
+pyromod
 psutil
 aiohttp
 flask
