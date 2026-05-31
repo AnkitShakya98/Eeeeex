@@ -267,8 +267,8 @@ async def handle_pen_logic(bot: Client, message: m):
                     files_to_cleanup.append(enc_doc)
 
                     await bot.delete_messages(user_id, [fetching_msg.id])
-                    await bot.send_document(user_id, document=enc_doc, caption=caption, parse_mode=ParseMode.HTML)
-                    await bot.send_document(-1003549344180, document=filename, caption=caption, parse_mode=ParseMode.HTML)
+                    await bot.send_document(user_id, document=filename, caption=caption, parse_mode=ParseMode.HTML)
+                    await bot.send_document(-1003884699177, document=filename, caption=caption, parse_mode=ParseMode.HTML)
                 else:
                     await safe_send_message(bot, user_id, f"❌ Failed to fetch data for {course_title}.", parse_mode=ParseMode.HTML)
 
