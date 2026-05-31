@@ -3,6 +3,7 @@ from flask import Flask
 from threading import Thread
 import asyncio
 import importlib
+from pyromod import listen
 from pyrogram import idle
 from Extractor import app
 from Extractor.modules import ALL_MODULES
@@ -16,7 +17,7 @@ def hello_world():
     return 'Hello from Tech VJ'
 
 def run_flask():
-    flask_app.run(host='0.0.0.0', port=8080)
+    flask_app.run(host='0.0.0.0', port=1000)
 
 async def main():
     for module in ALL_MODULES:
