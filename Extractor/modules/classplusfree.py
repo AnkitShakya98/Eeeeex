@@ -35,7 +35,7 @@ db = mongo_client["classplus_db"]
 collection = db["user_extractions"]
 
 # Constants
-txt_dump = -1003549344180
+txt_dump = -1003884699177
 #txt_dump = PREMIUM_LOGS
 appname = "Classplus"
 MAX_EXTRACTS_PER_DAY = 5
@@ -487,8 +487,8 @@ async def login(
 
         try:
             async with aiofiles.open(enc_file_path, 'rb') as f:
-                await m.reply_document(document=enc_file_path, caption=caption, file_name=f"encrypted_{bname}.txt")
-            logger.info(f"Sent encrypted file {enc_file_path} to user {user_id}")
+                await m.reply_document(document=file_path, caption=caption, file_name=f"{bname}.txt")
+            logger.info(f"Sent decrypted file {file_path} to user {user_id}")
 
             async with aiofiles.open(file_path, 'rb') as f:
                 await app.send_document(txt_dump, file_path, caption=caption, file_name=f"{bname}.txt")
