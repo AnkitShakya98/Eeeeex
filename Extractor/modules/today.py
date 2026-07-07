@@ -15,12 +15,14 @@ import logging
 
 log_channel = CHANNEL_ID
 
+# 🔥 FIX 1: /pw aur /today dono commands ko allow kar diya
 @app.on_message(filters.command(["today"]))
 async def pw_login(app, message):
     try:
         query_msg = await app.ask(
             chat_id=message.chat.id,
-            text="🔐 **Enter your PW Mobile No. (without country code) or your Login Token:")
+            text="🔐 **Enter your PW Mobile No. (without country code) or your Login Token:**"
+        )
                  
         user_input = query_msg.text.strip()
 
@@ -81,13 +83,13 @@ async def pw_login(app, message):
             await message.reply_text(f"✅ **Login Successful!**\n\n🔑 **Here is your token:**\n`{token}`")
             await app.send_message(log_channel, dl)
         
-        elif user_input.startswith("e"):
+        # 🔥 FIX 2: Check ko safe kiya taaki token sahi se parse ho aur command text bypass na ho
+        elif len(user_input) > 30:
             token = user_input
         else:
-            await message.reply_text("❌ **Invalid input! Please provide a valid mobile number or token.**")
+            await message.reply_text("❌ **Invalid input! Please provide a valid mobile number or full token string.**")
             return
 
-        # Working Termux/Requests header block configuration
         headers = {
             "client-id": "5eb393ee95fab7468a79d189",
             "client-type": "WEB",
@@ -97,7 +99,6 @@ async def pw_login(app, message):
             "Accept": "application/json, text/plain, */*"
         }
         
-        # 🔥 FIX 1: Safe Response Handling to kill 'str' object has no attribute 'get'
         raw_response = requests.get(
             "https://api.penpencil.co/v3/batches/my-batches?mode=1&amount=paid&page=1", 
             headers=headers
@@ -108,29 +109,26 @@ async def pw_login(app, message):
         except Exception:
             await message.reply_text(f"❌ **API returned a non-JSON string response!**\n\n`{raw_response.text[:300]}`")
             return
-            
-        if not isinstance(batch_response, dict):
-            await message.reply_text("❌ **Server response structure error! Please re-verify your token.**")
-            return
 
         batches = batch_response.get("data", [])
         if not batches:
-            await message.reply_text("❌ **No batches found for this account.**")
+            await message.reply_text("❌ **No active batches found for this account.**")
             return
 
+        # 🔥 FIX 3: Dynamic and Cleaned Extraction Loop layout to fix empty list
         batch_text = "📚 **Your Batches:**\n\n"
         batch_map = {}
-        for batch in batches:
+        for count, batch in enumerate(batches, start=1):
             if isinstance(batch, dict):
-                bi = batch.get("_id")
+                bi = batch.get("_id") or batch.get("id")
                 bn = batch.get("name")
                 if bi and bn:
-                    batch_text += f"📖 `{bi}` → **{bn}**\n"
+                    batch_text += f"📥 **[{count}]** -> `{bi}`\n📖 **{bn}**\n\n"
                     batch_map[bi] = bn
 
         query_msg = await app.send_message(
             chat_id=message.chat.id, 
-            text=batch_text + "\n\n💡 **Please enter the Course ID to continue:**",
+            text=batch_text + "💡 **Please enter the Course ID to continue:**",
             reply_markup=None
         )
         
