@@ -7,7 +7,7 @@ import json, asyncio
 from config import CHANNEL_ID
 import subprocess
 from datetime import datetime
-import pytz  # 🔥 Imported pytz for Standard Asia/Kolkata timezone mapping
+import pytz  
 from Extractor import app
 from pyrogram import filters
 from subprocess import getstatusoutput
@@ -97,11 +97,22 @@ async def pw_login(app, message):
             "Accept": "application/json, text/plain, */*"
         }
         
-        batch_response = requests.get(
+        # 🔥 FIX 1: Safe Response Handling to kill 'str' object has no attribute 'get'
+        raw_response = requests.get(
             "https://api.penpencil.co/v3/batches/my-batches?mode=1&amount=paid&page=1", 
             headers=headers
-        ).json()
+        )
         
+        try:
+            batch_response = raw_response.json()
+        except Exception:
+            await message.reply_text(f"❌ **API returned a non-JSON string response!**\n\n`{raw_response.text[:300]}`")
+            return
+            
+        if not isinstance(batch_response, dict):
+            await message.reply_text("❌ **Server response structure error! Please re-verify your token.**")
+            return
+
         batches = batch_response.get("data", [])
         if not batches:
             await message.reply_text("❌ **No batches found for this account.**")
@@ -110,10 +121,12 @@ async def pw_login(app, message):
         batch_text = "📚 **Your Batches:**\n\n"
         batch_map = {}
         for batch in batches:
-            bi = batch.get("_id")
-            bn = batch.get("name")
-            batch_text += f"📖 `{bi}` → **{bn}**\n"
-            batch_map[bi] = bn
+            if isinstance(batch, dict):
+                bi = batch.get("_id")
+                bn = batch.get("name")
+                if bi and bn:
+                    batch_text += f"📖 `{bi}` → **{bn}**\n"
+                    batch_map[bi] = bn
 
         query_msg = await app.send_message(
             chat_id=message.chat.id, 
@@ -138,7 +151,6 @@ async def pw_login(app, message):
         )
         date_input = date_msg.text.strip().lower()
 
-        # 🔥 Timezone Fix Layer (Asia/Kolkata Standard Synchronization)
         if date_input == "today" or not date_input:
             IST = pytz.timezone("Asia/Kolkata")
             target_date = datetime.now(IST).strftime("%Y-%m-%d")
@@ -154,10 +166,10 @@ async def pw_login(app, message):
         )
 
         with open(filename, 'w') as f:
-            # ONLY WEEKLY SCHEDULE EXTRACTION PIPELINE (Core extraction engine)
             schedule_url = f"https://api.penpencil.co/v2/batches/{target_id}/weekly-schedules?batchId={target_id}&startDate={target_date}&endDate={target_date}&page=1"
             try:
-                sched_resp = requests.get(schedule_url, headers=headers).json()
+                sched_raw = requests.get(schedule_url, headers=headers)
+                sched_resp = sched_raw.json()
                 schedules = sched_resp.get("data", []) or []
                 
                 if schedules:
@@ -165,7 +177,6 @@ async def pw_login(app, message):
                     for s_item in schedules:
                         el_type = s_item.get("type", "UNKNOWN")
                         
-                        # Processing Schedule Lecture Containers
                         if el_type == "LECTURE":
                             v_details = s_item.get("videoDetails", {})
                             if not v_details: 
@@ -182,11 +193,9 @@ async def pw_login(app, message):
                                 
                             if "cloudfront.net" in raw_stream:
                                 base_url = raw_stream.split("?")[0]
-                                # Raw MPD parameters bypass injection logic
                                 formatted_url = f"{base_url}&parentId={p_id}&childId={c_id}"
                                 f.write(f"{topic}:{formatted_url}\n")
                             
-                            # Attachment parsing layers inside schedules
                             for hw in v_details.get("homeworkIds", []):
                                 hw_title = hw.get("topic", topic).replace(":", "_")
                                 for attach in hw.get("attachmentIds", []):
@@ -195,7 +204,6 @@ async def pw_login(app, message):
                                     if b_url:
                                         f.write(f"{hw_title} Notes:{b_url}{key}\n")
                                         
-                        # Processing Standalone Notes Static PDF files
                         elif el_type == "NOTES":
                             n_details = s_item.get("notesDetails", {})
                             if not n_details:
@@ -204,7 +212,7 @@ async def pw_login(app, message):
                             topic = n_details.get("topic", "Notes Packet").replace(":", "_")
                             for hw in n_details.get("homeworkIds", []):
                                 hw_title = hw.get("topic", topic).replace(":", "_")
-                                for attach in hw.get("attachmentIds", []):
+                                for attach in n_details.get("attachmentIds", []):
                                     b_url = attach.get("baseUrl", "")
                                     key = attach.get("key", "")
                                     if b_url:
@@ -227,4 +235,4 @@ async def pw_login(app, message):
 
     except Exception as e:
         await message.reply_text(f"❌ **An error occurred:** `{str(e)}`")
-      
+        
